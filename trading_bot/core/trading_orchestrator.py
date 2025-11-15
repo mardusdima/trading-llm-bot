@@ -30,8 +30,8 @@ class TradingOrchestrator:
         
         self.strategy = SMACrossoverStrategy()
         self.risk_manager = RiskManager()
-        self.execution_engine = ExecutionEngine(self.adapter)
-        self.portfolio_tracker = PortfolioTracker()
+        self.execution_engine = ExecutionEngine(self.adapter, exchange_name=exchange_name)
+        self.portfolio_tracker = PortfolioTracker(exchange=exchange_name)
     
     def get_current_price(self, symbol: str) -> float:
         """Get current market price for a symbol"""

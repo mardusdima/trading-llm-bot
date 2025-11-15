@@ -53,3 +53,47 @@ class OrderBook(Base):
     asks = Column(JSON)
     info = Column(JSON)  # full raw book/metadata
     __table_args__ = (Index('ix_orderbooks_exchange_symbol_time', 'exchange', 'symbol', 'timestamp'),)
+
+class Position(Base):
+    __tablename__ = 'positions'
+    id = Column(Integer, primary_key=True)
+    exchange = Column(String, nullable=False)
+    symbol = Column(String, nullable=False, index=True)
+    amount = Column(Float, nullable=False)
+    avg_entry_price = Column(Float, nullable=False)
+    side = Column(String, nullable=False)  # 'buy' or 'sell'
+    entry_timestamp = Column(DateTime, nullable=False)
+    current_price = Column(Float, nullable=True)
+    unrealized_pnl = Column(Float, default=0.0)
+    updated_at = Column(DateTime, default=datetime.datetime.utcnow, onupdate=datetime.datetime.utcnow)
+    __table_args__ = (Index('ix_positions_exchange_symbol', 'exchange', 'symbol'),)
+
+class Portfolio(Base):
+    __tablename__ = 'portfolios'
+    id = Column(Integer, primary_key=True)
+    exchange = Column(String, nullable=False, unique=True)
+    initial_capital = Column(Float, nullable=False, default=10000.0)
+    current_value = Column(Float, nullable=False, default=10000.0)
+    total_pnl = Column(Float, default=0.0)
+    realized_pnl = Column(Float, default=0.0)
+    unrealized_pnl = Column(Float, default=0.0)
+    peak_value = Column(Float, nullable=False, default=10000.0)
+    updated_at = Column(DateTime, default=datetime.datetime.utcnow, onupdate=datetime.datetime.utcnow)
+
+class Order(Base):
+    __tablename__ = 'orders'
+    id = Column(Integer, primary_key=True)
+    exchange = Column(String, nullable=False)
+    exchange_order_id = Column(String, nullable=True, index=True)  # Order ID from exchange
+    symbol = Column(String, nullable=False, index=True)
+    side = Column(String, nullable=False)  # 'buy' or 'sell'
+    order_type = Column(String, nullable=False)  # 'market', 'limit', etc.
+    amount = Column(Float, nullable=False)
+    price = Column(Float, nullable=True)  # None for market orders
+    status = Column(String, nullable=False, default='pending')  # pending, filled, partial, canceled, rejected
+    filled_amount = Column(Float, default=0.0)
+    average_fill_price = Column(Float, nullable=True)
+    created_at = Column(DateTime, nullable=False, default=datetime.datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.datetime.utcnow, onupdate=datetime.datetime.utcnow)
+    error_message = Column(String, nullable=True)
+    __table_args__ = (Index('ix_orders_exchange_symbol_status', 'exchange', 'symbol', 'status'),)

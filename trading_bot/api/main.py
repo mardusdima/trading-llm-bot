@@ -122,6 +122,46 @@ async def get_ticker(symbol: str, exchange: str = "binance"):
         logger.error(f"Failed to get ticker: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
+@app.get("/api/orders/{order_id}")
+async def get_order_status(order_id: str, exchange: str = "binance"):
+    """Get order status by ID"""
+    try:
+        orchestrator = TradingOrchestrator(exchange_name=exchange)
+        order_status = orchestrator.execution_engine.get_order_status(order_id)
+        if not order_status:
+            raise HTTPException(status_code=404, detail="Order not found")
+        return JSONResponse(content=order_status)
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Failed to get order status: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+@app.get("/api/orders")
+async def list_orders(exchange: str = "binance", status: Optional[str] = None, limit: int = 100):
+    """List orders with optional status filter"""
+    try:
+        from trading_bot.db.models import Order
+        with get_session() as session:
+            query = session.query(Order).filter_by(exchange=exchange)
+            if status:
+                query = query.filter_by(status=status)
+            orders = query.order_by(Order.created_at.desc()).limit(limit).all()
+            return JSONResponse(content=[{
+                "id": o.id,
+                "exchange_order_id": o.exchange_order_id,
+                "symbol": o.symbol,
+                "side": o.side,
+                "status": o.status,
+                "amount": o.amount,
+                "filled_amount": o.filled_amount,
+                "price": o.price,
+                "created_at": o.created_at.isoformat() if o.created_at else None
+            } for o in orders])
+    except Exception as e:
+        logger.error(f"Failed to list orders: {e}")
+        raise HTTPException(status_code=500, detail=str(e))
+
 @app.websocket("/ws/market")
 async def websocket_market(websocket: WebSocket):
     """WebSocket endpoint for real-time market data streaming"""
