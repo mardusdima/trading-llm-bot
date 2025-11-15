@@ -33,6 +33,7 @@ def test_alpaca_adapter_paper_trading():
 @patch('trading_bot.exchange_adapters.binance.ccxt')
 def test_binance_fetch_market_data(mock_ccxt):
     """Test Binance market data fetching"""
+    from unittest.mock import Mock
     mock_exchange = Mock()
     mock_exchange.fetch_ohlcv.return_value = [[1609459200000, 100, 105, 99, 104, 1000]]
     mock_ccxt.binance.return_value = mock_exchange

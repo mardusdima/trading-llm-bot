@@ -19,10 +19,11 @@ def test_check_position_limit():
 def test_check_stop_loss():
     """Test stop-loss calculation"""
     rm = RiskManager()
-    # Test stop-loss triggered for long position
-    assert rm.check_stop_loss(100.0, 97.0, "buy") == True  # 3% loss > 2% stop
-    # Test stop-loss not triggered
-    assert rm.check_stop_loss(100.0, 99.0, "buy") == False  # 1% loss < 2% stop
+    # check_stop_loss returns True if loss is within acceptable range (NOT triggered)
+    # Test stop-loss NOT triggered (loss within limit)
+    assert rm.check_stop_loss(100.0, 99.0, "buy") == True  # 1% loss < 2% stop, acceptable
+    # Test stop-loss triggered (loss exceeds limit)
+    assert rm.check_stop_loss(100.0, 97.0, "buy") == False  # 3% loss > 2% stop, triggered
 
 def test_check_max_drawdown():
     """Test max drawdown checking"""

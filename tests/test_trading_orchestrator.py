@@ -29,12 +29,15 @@ def test_execute_trading_cycle_hold_signal(mock_execution, mock_risk, mock_strat
     result = orchestrator.execute_trading_cycle("BTC/USDT")
     assert result["status"] == "hold"
 
+@patch('trading_bot.core.trading_orchestrator.PortfolioTracker')
 @patch('trading_bot.core.trading_orchestrator.TradingOrchestrator.get_current_price')
 @patch('trading_bot.core.trading_orchestrator.SMACrossoverStrategy')
 @patch('trading_bot.core.trading_orchestrator.RiskManager')
 @patch('trading_bot.core.trading_orchestrator.ExecutionEngine')
-def test_execute_trading_cycle_risk_rejection(mock_execution, mock_risk, mock_strategy, mock_price):
+@patch('trading_bot.core.trading_orchestrator.BinanceAdapter')
+def test_execute_trading_cycle_risk_rejection(mock_adapter, mock_execution, mock_risk, mock_strategy, mock_price, mock_portfolio):
     """Test trading cycle with risk rejection"""
+    from unittest.mock import MagicMock
     # Setup mocks
     mock_strategy_instance = Mock()
     mock_strategy_instance.get_signal_from_db.return_value = 1  # Buy signal
@@ -46,9 +49,17 @@ def test_execute_trading_cycle_risk_rejection(mock_execution, mock_risk, mock_st
     
     mock_price.return_value = 100.0
     
+    # Mock portfolio tracker
+    mock_portfolio_instance = MagicMock()
+    mock_portfolio_instance.get_positions.return_value = {}
+    mock_portfolio_instance.calculate_pnl.return_value = {'portfolio_value': 10000.0}
+    mock_portfolio_instance.get_peak_value.return_value = 10000.0
+    mock_portfolio.return_value = mock_portfolio_instance
+    
     orchestrator = TradingOrchestrator(exchange_name="binance")
     orchestrator.strategy = mock_strategy_instance
     orchestrator.risk_manager = mock_risk_instance
+    orchestrator.portfolio_tracker = mock_portfolio_instance
     
     result = orchestrator.execute_trading_cycle("BTC/USDT")
     assert result["status"] == "rejected"

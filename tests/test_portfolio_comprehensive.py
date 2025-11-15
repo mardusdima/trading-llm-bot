@@ -1,16 +1,30 @@
 import pytest
 from datetime import datetime
+from unittest.mock import patch, MagicMock
 from trading_bot.portfolio.tracker import PortfolioTracker
 
-def test_portfolio_tracker_initialization():
+@patch('trading_bot.portfolio.tracker.get_session')
+def test_portfolio_tracker_initialization(mock_session):
     """Test PortfolioTracker initializes correctly"""
+    # Mock database session
+    mock_session.return_value.__enter__.return_value.query.return_value.filter_by.return_value.first.return_value = None
+    mock_session.return_value.__enter__.return_value.query.return_value.filter_by.return_value.all.return_value = []
+    
     tracker = PortfolioTracker(exchange="binance")
     assert tracker.exchange == "binance"
     assert tracker.initial_capital > 0
     assert isinstance(tracker.positions, dict)
 
-def test_update_positions_buy():
+@patch('trading_bot.portfolio.tracker.get_session')
+def test_update_positions_buy(mock_session):
     """Test updating positions with buy orders"""
+    # Mock database session
+    mock_db = MagicMock()
+    mock_session.return_value.__enter__.return_value = mock_db
+    mock_session.return_value.__enter__.return_value.query.return_value.filter_by.return_value.first.return_value = None
+    mock_session.return_value.__enter__.return_value.query.return_value.filter_by.return_value.all.return_value = []
+    mock_session.return_value.__enter__.return_value.commit = MagicMock()
+    
     tracker = PortfolioTracker(exchange="binance")
     fills = [{
         'symbol': 'BTC/USDT',
@@ -26,8 +40,16 @@ def test_update_positions_buy():
     assert tracker.positions['BTC/USDT']['amount'] == 1.0
     assert tracker.positions['BTC/USDT']['avg_entry_price'] == 100.0
 
-def test_update_positions_sell_close():
+@patch('trading_bot.portfolio.tracker.get_session')
+def test_update_positions_sell_close(mock_session):
     """Test closing a position with sell order"""
+    # Mock database session
+    mock_db = MagicMock()
+    mock_session.return_value.__enter__.return_value = mock_db
+    mock_session.return_value.__enter__.return_value.query.return_value.filter_by.return_value.first.return_value = None
+    mock_session.return_value.__enter__.return_value.query.return_value.filter_by.return_value.all.return_value = []
+    mock_session.return_value.__enter__.return_value.commit = MagicMock()
+    
     tracker = PortfolioTracker(exchange="binance")
     # First buy
     tracker.update_positions([{
@@ -54,8 +76,16 @@ def test_update_positions_sell_close():
     assert len(tracker.closed_trades) == 1
     assert tracker.closed_trades[0]['realized_pnl'] == 10.0
 
-def test_calculate_pnl():
+@patch('trading_bot.portfolio.tracker.get_session')
+def test_calculate_pnl(mock_session):
     """Test P&L calculation"""
+    # Mock database session
+    mock_db = MagicMock()
+    mock_session.return_value.__enter__.return_value = mock_db
+    mock_session.return_value.__enter__.return_value.query.return_value.filter_by.return_value.first.return_value = None
+    mock_session.return_value.__enter__.return_value.query.return_value.filter_by.return_value.all.return_value = []
+    mock_session.return_value.__enter__.return_value.commit = MagicMock()
+    
     tracker = PortfolioTracker(exchange="binance")
     # Open position
     tracker.update_positions([{
@@ -75,8 +105,16 @@ def test_calculate_pnl():
     assert pnl_data['portfolio_value'] > tracker.initial_capital
     assert 'BTC/USDT' in pnl_data['positions']
 
-def test_partial_close():
+@patch('trading_bot.portfolio.tracker.get_session')
+def test_partial_close(mock_session):
     """Test partial position close"""
+    # Mock database session
+    mock_db = MagicMock()
+    mock_session.return_value.__enter__.return_value = mock_db
+    mock_session.return_value.__enter__.return_value.query.return_value.filter_by.return_value.first.return_value = None
+    mock_session.return_value.__enter__.return_value.query.return_value.filter_by.return_value.all.return_value = []
+    mock_session.return_value.__enter__.return_value.commit = MagicMock()
+    
     tracker = PortfolioTracker(exchange="binance")
     # Buy 2 units
     tracker.update_positions([{

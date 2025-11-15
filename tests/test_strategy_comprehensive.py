@@ -1,6 +1,7 @@
 import pytest
 import pandas as pd
 from datetime import datetime, timedelta
+from unittest.mock import patch
 from trading_bot.strategy.sma_crossover import SMACrossoverStrategy
 
 def test_sma_crossover_initialization():
@@ -29,8 +30,13 @@ def test_generate_signals_bearish_crossover():
     
     assert len(signals) == len(data)
 
-def test_get_signal_from_db_insufficient_data():
+@patch('trading_bot.strategy.sma_crossover.get_session')
+def test_get_signal_from_db_insufficient_data(mock_session):
     """Test signal generation with insufficient data"""
+    from unittest.mock import MagicMock
+    # Mock empty database result
+    mock_session.return_value.__enter__.return_value.query.return_value.filter_by.return_value.order_by.return_value.limit.return_value.all.return_value = []
+    
     strategy = SMACrossoverStrategy(short_window=50, long_window=200)
     # Should return 0 (hold) when not enough data
     signal = strategy.get_signal_from_db("BTC/USDT", "binance", lookback=10)

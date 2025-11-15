@@ -431,7 +431,7 @@ async def list_orders(
         logger.error(f"Failed to list orders: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
-@app.websocket("/ws/market", tags=["WebSocket"])
+@app.websocket("/ws/market")
 async def websocket_market(websocket: WebSocket):
     """
     WebSocket endpoint for real-time market data streaming.
@@ -506,7 +506,7 @@ async def websocket_market(websocket: WebSocket):
         logger.error(f"WebSocket error: {e}")
         manager.disconnect(websocket)
 
-@app.websocket("/ws/trades", tags=["WebSocket"])
+@app.websocket("/ws/trades")
 async def websocket_trades(websocket: WebSocket):
     """
     WebSocket endpoint for real-time trade updates.

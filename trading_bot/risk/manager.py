@@ -69,7 +69,8 @@ class RiskManager:
         if entry_price == 0 or current_price == 0:
             return False
         
-        return self.check_stop_loss(entry_price, current_price, side)
+        # Return True if stop-loss is triggered (inverse of check_stop_loss)
+        return not self.check_stop_loss(entry_price, current_price, side)
 
     def check_drawdown(self, portfolio):
         """Legacy method for compatibility"""
