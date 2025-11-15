@@ -8,6 +8,7 @@ from trading_bot.core.trading_orchestrator import TradingOrchestrator
 from trading_bot.db.models import Trade, Ticker, Candle
 from trading_bot.db.session import get_session
 from trading_bot.logging.logger import logger
+from datetime import datetime, timedelta
 
 app = FastAPI(title="Trading LLM Bot", version="1.0.0")
 
@@ -126,33 +127,93 @@ async def websocket_market(websocket: WebSocket):
     """WebSocket endpoint for real-time market data streaming"""
     await manager.connect(websocket)
     try:
+        # Receive initial message for symbol filter (optional)
+        symbol = None
+        try:
+            initial_msg = await asyncio.wait_for(websocket.receive_json(), timeout=1.0)
+            symbol = initial_msg.get('symbol')
+        except:
+            pass  # No initial message, stream all symbols
+        
+        last_timestamp = datetime.utcnow() - timedelta(minutes=1)
         while True:
-            # Send latest ticker data periodically
-            # In production, this would stream real-time data from exchanges
-            data = {
-                "type": "ticker",
-                "message": "Market data streaming active",
-                "timestamp": "2024-01-01T00:00:00Z"
-            }
-            await websocket.send_json(data)
+            # Fetch latest ticker data from database
+            with get_session() as session:
+                query = session.query(Ticker).order_by(Ticker.timestamp.desc())
+                if symbol:
+                    query = query.filter_by(symbol=symbol)
+                query = query.filter(Ticker.timestamp > last_timestamp)
+                tickers = query.limit(10).all()
+                
+                if tickers:
+                    for ticker in tickers:
+                        data = {
+                            "type": "ticker",
+                            "symbol": ticker.symbol,
+                            "exchange": ticker.exchange,
+                            "price": ticker.price,
+                            "bid": ticker.bid,
+                            "ask": ticker.ask,
+                            "timestamp": ticker.timestamp.isoformat() if ticker.timestamp else None
+                        }
+                        await websocket.send_json(data)
+                    last_timestamp = tickers[0].timestamp
+                else:
+                    # Send heartbeat if no new data
+                    await websocket.send_json({
+                        "type": "heartbeat",
+                        "timestamp": datetime.utcnow().isoformat()
+                    })
+            
             await asyncio.sleep(5)  # Send update every 5 seconds
     except WebSocketDisconnect:
         manager.disconnect(websocket)
         logger.info("WebSocket client disconnected")
+    except Exception as e:
+        logger.error(f"WebSocket error: {e}")
+        manager.disconnect(websocket)
 
 @app.websocket("/ws/trades")
 async def websocket_trades(websocket: WebSocket):
     """WebSocket endpoint for real-time trade updates"""
     await manager.connect(websocket)
     try:
+        last_timestamp = datetime.utcnow() - timedelta(minutes=5)
         while True:
-            # In production, this would stream real-time trade events
-            data = {
-                "type": "trade_update",
-                "message": "Trade updates streaming active"
-            }
-            await websocket.send_json(data)
-            await asyncio.sleep(10)
+            # Fetch latest trades from database
+            with get_session() as session:
+                trades = (session.query(Trade)
+                         .filter(Trade.timestamp > last_timestamp)
+                         .order_by(Trade.timestamp.desc())
+                         .limit(20)
+                         .all())
+                
+                if trades:
+                    for trade in trades:
+                        data = {
+                            "type": "trade_update",
+                            "id": trade.id,
+                            "symbol": trade.symbol,
+                            "side": trade.side,
+                            "amount": trade.amount,
+                            "price": trade.price,
+                            "status": trade.status,
+                            "timestamp": trade.timestamp.isoformat() if trade.timestamp else None
+                        }
+                        await websocket.send_json(data)
+                    last_timestamp = trades[0].timestamp
+                else:
+                    # Send heartbeat if no new trades
+                    await websocket.send_json({
+                        "type": "heartbeat",
+                        "message": "No new trades",
+                        "timestamp": datetime.utcnow().isoformat()
+                    })
+            
+            await asyncio.sleep(10)  # Check every 10 seconds
     except WebSocketDisconnect:
         manager.disconnect(websocket)
         logger.info("WebSocket client disconnected")
+    except Exception as e:
+        logger.error(f"WebSocket error: {e}")
+        manager.disconnect(websocket)

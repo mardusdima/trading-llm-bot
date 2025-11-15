@@ -11,6 +11,7 @@ from trading_bot.execution.engine import ExecutionEngine
 from trading_bot.portfolio.tracker import PortfolioTracker
 from trading_bot.exchange_adapters.binance import BinanceAdapter
 from trading_bot.exchange_adapters.alpaca import AlpacaAdapter
+from trading_bot.exchange_adapters.coinbase import CoinbaseAdapter
 from trading_bot.logging.logger import logger
 from trading_bot.db.models import Trade
 from trading_bot.db.session import get_session
@@ -22,6 +23,8 @@ class TradingOrchestrator:
             self.adapter = BinanceAdapter()
         elif exchange_name == "alpaca":
             self.adapter = AlpacaAdapter()
+        elif exchange_name == "coinbase":
+            self.adapter = CoinbaseAdapter()
         else:
             raise ValueError(f"Unsupported exchange: {exchange_name}")
         
